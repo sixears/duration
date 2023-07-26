@@ -2,6 +2,8 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE UnicodeSyntax     #-}
 
+{-| unit tests for `Duration` -}
+
 module Duration.T.Tests
   ( tests )
 where
@@ -32,6 +34,7 @@ import qualified  Duration
 
 --------------------------------------------------------------------------------
 
+{-| unit tests for `Duration` -}
 tests ∷ TestTree
 tests = testGroup "duration" [ Duration.tests ]
 

@@ -11,6 +11,7 @@
 {-# LANGUAGE UnicodeSyntax              #-}
 {-# LANGUAGE ViewPatterns               #-}
 
+{-| high-precision time duration with 292y range -}
 module Duration
   ( Duration( NS, MS, US, SECS, MINS, HOURS, DAYS, DHMS_NS, HMS_MS )
   , asNanoseconds, fromNanos
@@ -91,7 +92,6 @@ import Data.MoreUnicode.Functor      ( (⊳) )
 import Data.MoreUnicode.Lens         ( (⊣), (⫣), (⊢) )
 import Data.MoreUnicode.Monoid       ( ю )
 import Data.MoreUnicode.Natural      ( ℕ )
-import Data.MoreUnicode.Tasty        ( (≟) )
 
 -- non-empty-containers ----------------
 
@@ -123,11 +123,11 @@ import Test.Tasty  ( TestTree, testGroup )
 
 -- tasty-hunit -------------------------
 
-import Test.Tasty.HUnit  ( testCase )
+import Test.Tasty.HUnit  ( (@=?), testCase )
 
 -- tasty-plus --------------------------
 
-import TastyPlus  ( propInvertibleText, runTestsP, runTestsReplay, runTestTree )
+import TastyPlus  ( (≟), propInvertibleText, runTestsP, runTestsReplay, runTestTree )
 
 -- tasty-quickcheck --------------------
 
@@ -140,6 +140,10 @@ import Data.Text  ( pack )
 -- text-printer ------------------------
 
 import qualified  Text.Printer  as  P
+
+-- textual-plus ------------------------
+
+import TextualPlus  ( TextualPlus( textual' ) )
 
 -- tfmt --------------------------------
 
@@ -166,6 +170,7 @@ import Text.Fmt  ( fmt )
 --                 = (2562047h,47m,16s,854775807ns)
 --                 = (106751d,23h,47m,16s,854775807ns)
 --                 ≃ 292y
+{-| a time duration, with 292y range and ns precision with nice formatting -}
 newtype Duration = Duration { unDuration ∷ Int64 }
   deriving (Arbitrary, Bounded, Enum, Eq, Ord, Show)
 
@@ -255,9 +260,12 @@ instance Textual Duration where
 
              in tries $ [parseHMSColons, parseMSColons] ⋗ parsehms
 
+instance TextualPlus Duration where
+  textual' = textual
+
 textualTests ∷ TestTree
 textualTests =
-  let a ≣ b = testCase b $ Just a ≟ fromString b
+  let a ≣ b = testCase b $ Just a @=? fromString b
    in testGroup "Textual"
                 [ testCase "print 100ms"    $ "0.1s"     ≟ toText (MS 100)
                 , testCase "print 1s"       $ "1s"       ≟ toText (SECS 1)
@@ -400,7 +408,7 @@ _us = lens (\ d → let (_,ns) = durBounded d
                          ⫣ asMicroseconds)
                 , testCase "3μs" $ f3 ≟ (\ (US n) → n) us3
                 , testCase "2μs" $ us3 ≟ US f3
-                , testCase "_us (get)" $ 𝕎 456 ≟ dur ⊣ _us
+                , testCase "_us (get)" $ 𝕎 456 @=? dur ⊣ _us
                 , testCase "_us (set)" $   Duration 456_789_123_654_789
                                          ≟ dur ⅋ _us ⊢ 𝕎 654
                 ]
@@ -466,7 +474,7 @@ msTests =
                            ⫣ asMilliseconds)
                 , testCase "3ms" $ f3 ≟ (\ (MS n) → n) ms3
                 , testCase "3ms" $ ms3 ≟ MS f3
-                , testCase "_ms (get)" $ 𝕎 123 ≟ dur ⊣ _ms
+                , testCase "_ms (get)" $ 𝕎 123 @=? dur ⊣ _ms
                 , testCase "_ms (set)" $   Duration (-456_789_321_456_789)
                                          ≟ dur ⅋ _ms ⊢ 𝕎 321
                 ]
@@ -509,11 +517,11 @@ hms_nsTests =
       HMS_NS g hh mm ss ns = dur
    in testGroup "HMS_NS"
                 [ testCase "→ HMS_NS" $ dur ≟ HMS_NS MINUS (𝕎 1)(𝕎 2)(𝕎 3)(𝕎 4)
-                , testCase "g"  $ MINUS ≟ g
-                , testCase "hh" $ 𝕎 1   ≟ hh
-                , testCase "mm" $ 𝕎 2   ≟ mm
-                , testCase "ss" $ 𝕎 3   ≟ ss
-                , testCase "ns" $ 𝕎 4   ≟ ns
+                , testCase "g"  $ MINUS @=? g
+                , testCase "hh" $ 𝕎 1   @=? hh
+                , testCase "mm" $ 𝕎 2   @=? mm
+                , testCase "ss" $ 𝕎 3   @=? ss
+                , testCase "ns" $ 𝕎 4   @=? ns
                 ]
 
 --------------------
@@ -559,12 +567,12 @@ dhms_nsTests =
    in testGroup "DHMS_NS"
                 [ testCase "→ DHMS_NS" $ dur ≟ DHMS_NS PLUS (𝕎 1) (𝕎 2) (𝕎 3)
                                                                    (𝕎 4) (𝕎 5)
-                , testCase "g"  $ PLUS ≟ g
-                , testCase "dd" $ 𝕎 1 ≟ dd
-                , testCase "hh" $ 𝕎 2 ≟ hh
-                , testCase "mm" $ 𝕎 3 ≟ mm
-                , testCase "ss" $ 𝕎 4 ≟ ss
-                , testCase "ns" $ 𝕎 5 ≟ ns
+                , testCase "g"  $ PLUS @=? g
+                , testCase "dd" $ 𝕎 1 @=? dd
+                , testCase "hh" $ 𝕎 2 @=? hh
+                , testCase "mm" $ 𝕎 3 @=? mm
+                , testCase "ss" $ 𝕎 4 @=? ss
+                , testCase "ns" $ 𝕎 5 @=? ns
                 ]
 
 --------------------
@@ -591,14 +599,14 @@ hms_msTests =
       dur' = Duration (-4_834_568_000_000)
       HMS_MS g hh mm ss ms = dur
    in testGroup "HMS_MS"
-                [ testCase "hms_ms"   $  (PLUS,𝕎 1,𝕎 20,𝕎 34,𝕎 567) ≟ hms_ms dur
+                [ testCase "hms_ms"   $  (PLUS,𝕎 1,𝕎 20,𝕎 34,𝕎 567) @=? hms_ms dur
                 , testCase "→ HMS_MS" $  dur' ≟ HMS_MS MINUS (𝕎 1) (𝕎 20) (𝕎 34)
                                                              (𝕎 568)
-                , testCase "g"        $ PLUS  ≟ g
-                , testCase "hh"       $ 𝕎   1 ≟ hh
-                , testCase "mm"       $ 𝕎  20 ≟ mm
-                , testCase "ss"       $ 𝕎  34 ≟ ss
-                , testCase "ms"       $ 𝕎 567 ≟ ms
+                , testCase "g"        $ PLUS  @=? g
+                , testCase "hh"       $ 𝕎   1 @=? hh
+                , testCase "mm"       $ 𝕎  20 @=? mm
+                , testCase "ss"       $ 𝕎  34 @=? ss
+                , testCase "ms"       $ 𝕎 567 @=? ms
                 ]
 
 ----------------------------------------
@@ -626,7 +634,7 @@ secsTests =
       dur  = Duration 3_723_123_456_789
       dur' = Duration 3_729_123_456_789
    in testGroup "seconds"
-                [ testCase "3s" $ 𝕎 3 ≟ dur ⊣ seconds
+                [ testCase "3s" $ 𝕎 3 @=? dur ⊣ seconds
                 , testCase "s → 9" $ dur' ≟ dur ⅋ seconds ⊢ 𝕎 9
                 , testCase "3½s" $
                       (3_499_999_999÷1_000_000_000)
@@ -664,7 +672,7 @@ minsTests =
       dur  = Duration 3_723_123_456_789
       dur' = Duration 3_783_123_456_789
    in testGroup "minutes"
-                [ testCase "2mins"    $ 𝕎 2 ≟ dur ⊣ minutes
+                [ testCase "2mins"    $ 𝕎 2 @=? dur ⊣ minutes
                 , testCase "mins → 3" $ dur' ≟ dur ⅋ minutes ⊢ 𝕎 3
                 , testCase "3½mins" $
                       (3_499_999_999÷60_000_000_000)
@@ -702,7 +710,7 @@ hoursTests =
       dur  = Duration  3_723_123_456_789
       dur' = Duration 10_923_123_456_789
    in testGroup "hours"
-                [ testCase "1hour"     $ 𝕎 1 ≟ dur ⊣ hours
+                [ testCase "1hour"     $ 𝕎 1 @=? dur ⊣ hours
                 , testCase "hours → 3" $ dur' ≟ dur ⅋ hours ⊢ 𝕎 3
                 , testCase "3½hours" $
                       (3_499_999_999÷3_600_000_000_000)
@@ -740,7 +748,7 @@ daysTests =
       dur  = Duration 89_532_723_123_456_789
       dur' = Duration 281_523_123_456_789
    in testGroup "days"
-                [ testCase "1,036days" $ 𝕎 1_036 ≟ dur ⊣ days
+                [ testCase "1,036days" $ 𝕎 1_036 @=? dur ⊣ days
                 , testCase "days → 3" $ dur' ≟ dur ⅋ days ⊢ 𝕎 3
                 , testCase "3½days" $
                       (7÷2) ≟ Duration 302_400_000_000_000 ⊣ asDays
@@ -793,6 +801,7 @@ three = 3
 
 ------------------------------------------------------------
 
+{-| unit tests for `Duration` -}
 tests ∷ TestTree
 tests =
   testGroup "Duration" [ textualTests, nsTests, μsTests, dhms_nsTests
